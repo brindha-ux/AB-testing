@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless Blog with A/B Testing</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --success-color: #27ae60;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background-color: white;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-left: 1.5rem;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark-color);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+        
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .blog-posts {
+            display: grid;
+            gap: 1.5rem;
+        }
+        
+        .post-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .post-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .post-content {
+            padding: 1.5rem;
+        }
+        
+        .post-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+        
+        .post-meta {
+            display: flex;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .post-meta span {
+            margin-right: 1rem;
+        }
+        
+        .post-excerpt {
+            color: #555;
+            margin-bottom: 1rem;
+        }
+        
+        .read-more {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .read-more:hover {
+            background: #2980b9;
+        }
+        
+        .sidebar {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+        
+        .sidebar h3 {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--light-color);
+            color: var(--dark-color);
+        }
+        
+        .categories, .popular-posts {
+            margin-bottom: 2rem;
+        }
+        
+        .categories ul, .popular-posts ul {
+            list-style: none;
+        }
+        
+        .categories li, .popular-posts li {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--light-color);
+        }
+        
+        .categories a, .popular-posts a {
+            text-decoration: none;
+            color: #555;
+            transition: color 0.3s;
+        }
+        
+        .categories a:hover, .popular-posts a:hover {
+            color: var(--primary-color);
+        }
+        
+        .ab-testing-panel {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+        
+        .ab-testing-panel h2 {
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+        
+        .test-variants {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .variant {
+            background: var(--light-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+        
+        .variant.active {
+            border-color: var(--primary-color);
+        }
+        
+        .variant h3 {
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+        
+        .variant-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: var(--success-color);
+        }
+        
+        .btn-success:hover {
+            background: #219955;
+        }
+        
+        .btn-warning {
+            background: var(--warning-color);
+        }
+        
+        .btn-warning:hover {
+            background: #d68910;
+        }
+        
+        footer {
+            background: var(--dark-color);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        
+        .footer-section {
+            flex: 1;
+            min-width: 250px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .footer-section h3 {
+            margin-bottom: 1rem;
+            color: var(--light-color);
+        }
+        
+        .footer-section ul {
+            list-style: none;
+        }
+        
+        .footer-section li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer-section a {
+            color: #bdc3c7;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-section a:hover {
+            color: white;
+        }
+        
+        .copyright {
+            padding-top: 1rem;
+            border-top: 1px solid #34495e;
+            color: #bdc3c7;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .navbar {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .nav-links {
+                margin-top: 1rem;
+                justify-content: center;
+            }
+            
+            .nav-links li {
+                margin: 0 0.75rem;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .test-variants {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">ServerlessBlog</div>
+                <ul class="nav-links">
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Categories</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Serverless Microservices Blog</h1>
+            <p>Explore the latest in serverless architecture, microservices, and A/B testing implementations</p>
+        </div>
+    </section>
+
+    <div class="container">
+        <section class="ab-testing-panel">
+            <h2>A/B Testing Dashboard</h2>
+            <p>Monitor the performance of different content variations</p>
+            
+            <div class="test-variants">
+                <div class="variant active">
+                    <h3>Variant A (Control)</h3>
+                    <p>Original blog layout with sidebar</p>
+                    <div class="variant-stats">
+                        <div class="stat">
+                            <div class="stat-value">1,254</div>
+                            <div class="stat-label">Views</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">4.2%</div>
+                            <div class="stat-label">CTR</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">2.1min</div>
+                            <div class="stat-label">Avg. Time</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="variant">
+                    <h3>Variant B</h3>
+                    <p>Simplified layout without sidebar</p>
+                    <div class="variant-stats">
+                        <div class="stat">
+                            <div class="stat-value">1,189</div>
+                            <div class="stat-label">Views</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">5.7%</div>
+                            <div class="stat-label">CTR</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">2.8min</div>
+                            <div class="stat-label">Avg. Time</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="variant">
+                    <h3>Variant C</h3>
+                    <p>Featured posts carousel at top</p>
+                    <div class="variant-stats">
+                        <div class="stat">
+                            <div class="stat-value">1,102</div>
+                            <div class="stat-label">Views</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">3.9%</div>
+                            <div class="stat-label">CTR</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">2.4min</div>
+                            <div class="stat-label">Avg. Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-success" id="createTestBtn">Create New A/B Test</button>
+            <button class="btn btn-warning" id="analyzeResultsBtn">Analyze Results</button>
+        </section>
+
+        <div class="content">
+            <main class="blog-posts">
+                <article class="post-card">
+                    <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Serverless Architecture" class="post-image">
+                    <div class="post-content">
+                        <h2 class="post-title">Building Scalable Serverless Applications</h2>
+                        <div class="post-meta">
+                            <span>By John Doe</span>
+                            <span>May 15, 2023</span>
+                            <span>Serverless</span>
+                        </div>
+                        <p class="post-excerpt">Learn how to design and implement serverless applications that scale automatically with demand while minimizing costs and operational overhead.</p>
+                        <a href="#" class="read-more">Read More</a>
+                    </div>
+                </article>
+                
+                <article class="post-card">
+                    <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Microservices" class="post-image">
+                    <div class="post-content">
+                        <h2 class="post-title">Microservices Patterns for Modern Applications</h2>
+                        <div class="post-meta">
+                            <span>By Jane Smith</span>
+                            <span>April 28, 2023</span>
+                            <span>Microservices</span>
+                        </div>
+                        <p class="post-excerpt">Explore essential patterns for designing microservices architectures that are resilient, scalable, and maintainable in production environments.</p>
+                        <a href="#" class="read-more">Read More</a>
+                    </div>
+                </article>
+                
+                <article class="post-card">
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="A/B Testing" class="post-image">
+                    <div class="post-content">
+                        <h2 class="post-title">Advanced A/B Testing Strategies for Developers</h2>
+                        <div class="post-meta">
+                            <span>By Alex Johnson</span>
+                            <span>April 10, 2023</span>
+                            <span>A/B Testing</span>
+                        </div>
+                        <p class="post-excerpt">Discover how to implement sophisticated A/B testing methodologies that provide meaningful insights and drive product improvements.</p>
+                        <a href="#" class="read-more">Read More</a>
+                    </div>
+                </article>
+            </main>
+            
+            <aside class="sidebar">
+                <div class="categories">
+                    <h3>Categories</h3>
+                    <ul>
+                        <li><a href="#">Serverless Architecture</a></li>
+                        <li><a href="#">Microservices</a></li>
+                        <li><a href="#">A/B Testing</a></li>
+                        <li><a href="#">Cloud Computing</a></li>
+                        <li><a href="#">DevOps</a></li>
+                        <li><a href="#">API Design</a></li>
+                    </ul>
+                </div>
+                
+                <div class="popular-posts">
+                    <h3>Popular Posts</h3>
+                    <ul>
+                        <li><a href="#">Getting Started with AWS Lambda</a></li>
+                        <li><a href="#">Container Orchestration with Kubernetes</a></li>
+                        <li><a href="#">Monitoring Serverless Applications</a></li>
+                        <li><a href="#">Event-Driven Architecture Patterns</a></li>
+                        <li><a href="#">Cost Optimization in the Cloud</a></li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>ServerlessBlog</h3>
+                    <p>Your source for the latest in serverless architecture, microservices, and A/B testing.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Categories</h3>
+                    <ul>
+                        <li><a href="#">Serverless</a></li>
+                        <li><a href="#">Microservices</a></li>
+                        <li><a href="#">A/B Testing</a></li>
+                        <li><a href="#">Cloud</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Subscribe</h3>
+                    <p>Stay updated with our latest articles and tutorials.</p>
+                    <form id="subscribeForm">
+                        <input type="email" placeholder="Your email" style="padding: 0.5rem; width: 100%; margin-bottom: 0.5rem; border-radius: 4px; border: none;">
+                        <button type="submit" class="btn" style="width: 100%;">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>&copy; 2023 ServerlessBlog. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mock serverless functions for demonstration
+        const mockServerlessAPI = {
+            // Simulate A/B test creation
+            createABTest: (testConfig) => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({
+                            success: true,
+                            testId: 'test_' + Math.random().toString(36).substr(2, 9),
+                            message: 'A/B test created successfully'
+                        });
+                    }, 1000);
+                });
+            },
+            
+            // Simulate getting A/B test results
+            getABTestResults: (testId) => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({
+                            testId: testId,
+                            variants: [
+                                {
+                                    name: 'Variant A',
+                                    views: 1254,
+                                    conversions: 53,
+                                    conversionRate: 4.2,
+                                    avgTimeOnPage: 2.1
+                                },
+                                {
+                                    name: 'Variant B',
+                                    views: 1189,
+                                    conversions: 68,
+                                    conversionRate: 5.7,
+                                    avgTimeOnPage: 2.8
+                                },
+                                {
+                                    name: 'Variant C',
+                                    views: 1102,
+                                    conversions: 43,
+                                    conversionRate: 3.9,
+                                    avgTimeOnPage: 2.4
+                                }
+                            ],
+                            statisticalSignificance: 0.95,
+                            winningVariant: 'Variant B'
+                        });
+                    }, 1500);
+                });
+            },
+            
+            // Simulate tracking a user view
+            trackView: (variant, postId) => {
+                // In a real implementation, this would send data to your analytics service
+                console.log(`Tracked view for variant ${variant} on post ${postId}`);
+                return Promise.resolve({ success: true });
+            },
+            
+            // Simulate tracking a conversion
+            trackConversion: (variant, postId, action) => {
+                // In a real implementation, this would send data to your analytics service
+                console.log(`Tracked conversion for variant ${variant} on post ${postId}, action: ${action}`);
+                return Promise.resolve({ success: true });
+            }
+        };
+
+        // DOM elements
+        const createTestBtn = document.getElementById('createTestBtn');
+        const analyzeResultsBtn = document.getElementById('analyzeResultsBtn');
+        const subscribeForm = document.getElementById('subscribeForm');
+
+        // Event listeners
+        createTestBtn.addEventListener('click', () => {
+            createTestBtn.textContent = 'Creating Test...';
+            createTestBtn.disabled = true;
+            
+            mockServerlessAPI.createABTest({
+                name: 'Blog Layout Test',
+                variants: ['A', 'B', 'C'],
+                target: 'homepage',
+                trafficAllocation: 100
+            }).then(result => {
+                alert(`A/B Test Created: ${result.message}\nTest ID: ${result.testId}`);
+                createTestBtn.textContent = 'Create New A/B Test';
+                createTestBtn.disabled = false;
+            });
+        });
+
+        analyzeResultsBtn.addEventListener('click', () => {
+            analyzeResultsBtn.textContent = 'Analyzing...';
+            analyzeResultsBtn.disabled = true;
+            
+            mockServerlessAPI.getABTestResults('current_test').then(results => {
+                alert(`A/B Test Results:\nWinning Variant: ${results.winningVariant}\nStatistical Significance: ${results.statisticalSignificance}`);
+                analyzeResultsBtn.textContent = 'Analyze Results';
+                analyzeResultsBtn.disabled = false;
+                
+                // Update the UI with the latest results
+                updateTestResultsUI(results);
+            });
+        });
+
+        subscribeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const emailInput = subscribeForm.querySelector('input[type="email"]');
+            const email = emailInput.value;
+            
+            if (email) {
+                // Simulate subscription API call
+                setTimeout(() => {
+                    alert('Thank you for subscribing to our newsletter!');
+                    emailInput.value = '';
+                }, 500);
+            }
+        });
+
+        // Function to update the UI with test results
+        function updateTestResultsUI(results) {
+            const variants = document.querySelectorAll('.variant');
+            
+            variants.forEach((variant, index) => {
+                if (index < results.variants.length) {
+                    const variantData = results.variants[index];
+                    const stats = variant.querySelector('.variant-stats');
+                    
+                    stats.innerHTML = `
+                        <div class="stat">
+                            <div class="stat-value">${variantData.views.toLocaleString()}</div>
+                            <div class="stat-label">Views</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${variantData.conversionRate}%</div>
+                            <div class="stat-label">CTR</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${variantData.avgTimeOnPage}min</div>
+                            <div class="stat-label">Avg. Time</div>
+                        </div>
+                    `;
+                    
+                    // Highlight the winning variant
+                    if (variantData.name === results.winningVariant) {
+                        variant.classList.add('active');
+                    } else {
+                        variant.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        // Simulate tracking views when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // In a real implementation, you would determine which variant to show
+            const userVariant = 'A'; // This would be determined by your A/B testing service
+            
+            // Track the page view
+            mockServerlessAPI.trackView(userVariant, 'homepage');
+            
+            // Track conversions on read more clicks
+            const readMoreLinks = document.querySelectorAll('.read-more');
+            readMoreLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const postId = link.closest('.post-card').querySelector('.post-title').textContent;
+                    mockServerlessAPI.trackConversion(userVariant, postId, 'read_more_click');
+                    
+                    // In a real implementation, you would navigate to the post page
+                    alert(`Navigating to post: ${postId}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
